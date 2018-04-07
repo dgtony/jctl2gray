@@ -9,7 +9,7 @@ Works with the new versions of *systemd* (>= 190) supporting single-line JSON fo
 ## Usage
 There are two modes of operation:
 
-* read JSON's from stdin: `journalctl -o json -f | jctl2gray`
+* read JSON's from stdin: `journalctl -o json -f | jctl2gray -c config.toml`
 
 * read directly from the subprocess with journalctl.
 
