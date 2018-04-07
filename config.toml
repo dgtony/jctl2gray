@@ -17,7 +17,7 @@ sender_port = 1234
 service = "the-most-important-one"
 
 # Graylog address to send to
-graylog_addr = "127.0.0.1:1235"
+graylog_addr = "127.0.0.1:12201"
 
 # none/gzip/zlib
 compression = "none"
