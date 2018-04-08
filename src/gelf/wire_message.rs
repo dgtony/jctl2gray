@@ -63,23 +63,30 @@ impl<'a> serde::Serialize for WireMessage<'a> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
+        let trimmed_symbols: &[_] = &['"', ' '];
 
-        map.serialize_key("version")?;
-        map.serialize_value(GELF_VERSION)?;
+        map.serialize_entry("version", GELF_VERSION)?;
 
-        map.serialize_key("host")?;
-        map.serialize_value(self.message.host)?;
+        map.serialize_entry(
+            "host",
+            self.message.host.trim_matches(trimmed_symbols),
+        )?;
 
-        map.serialize_key("short_message")?;
-        map.serialize_value(self.message.short_message())?;
+        map.serialize_entry(
+            "short_message",
+            self.message.short_message().trim_matches(
+                trimmed_symbols,
+            ),
+        )?;
 
-        map.serialize_key("level")?;
         let level = self.message.level as u8;
-        map.serialize_value(&level)?;
+        map.serialize_entry("level", &level)?;
 
         if self.message.full_message().is_some() {
-            map.serialize_key("full_message")?;
-            map.serialize_value(&self.message.full_message())?;
+            map.serialize_entry(
+                "full_message",
+                &self.message.full_message(),
+            )?;
         }
 
         map.serialize_key("timestamp")?;
@@ -101,8 +108,7 @@ impl<'a> serde::Serialize for WireMessage<'a> {
 
         for (key, value) in self.message.all_metadata().iter() {
             let key = "_".to_string() + key;
-            map.serialize_key(&key)?;
-            map.serialize_value(value)?;
+            map.serialize_entry(&key, value)?;
         }
 
         map.end()
@@ -112,8 +118,8 @@ impl<'a> serde::Serialize for WireMessage<'a> {
 /// Return current UNIX-timestamp as a seconds
 #[inline]
 fn current_time_unix() -> f64 {
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system clock failed");
+    let ts = SystemTime::now().duration_since(UNIX_EPOCH).expect(
+        "system clock failed",
+    );
     ts.as_secs() as f64 + ts.subsec_nanos() as f64 / 1_000_000_000 as f64
 }

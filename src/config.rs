@@ -84,9 +84,7 @@ pub fn update_current(current_config: &mut ConfigWatched, new_config: ConfigWatc
     if new_config.team != current_config.team {
         info!(
             "team changed to {}",
-            new_config.team
-                .as_ref()
-                .map_or("undefined", |s| s.as_str())
+            new_config.team.as_ref().map_or("undefined", |s| s.as_str())
         );
         current_config.team = new_config.team;
     }
@@ -94,9 +92,10 @@ pub fn update_current(current_config: &mut ConfigWatched, new_config: ConfigWatc
     if new_config.service != current_config.service {
         info!(
             "service name changed to {}",
-            new_config.service
-                .as_ref()
-                .map_or("undefined", |s| s.as_str())
+            new_config.service.as_ref().map_or(
+                "undefined",
+                |s| s.as_str(),
+            )
         );
         current_config.service = new_config.service;
     }

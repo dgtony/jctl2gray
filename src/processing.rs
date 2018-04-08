@@ -21,7 +21,7 @@ const IGNORED_FIELDS: [&str; 9] = [
     "_BOOT_ID",
     "_MACHINE_ID",
     "_SYSTEMD_CGROUP",
-    "_SYSTEMD_SLICE"
+    "_SYSTEMD_SLICE",
 ];
 
 type LogRecord = HashMap<String, serde_json::Value>;
@@ -29,9 +29,9 @@ type LogRecord = HashMap<String, serde_json::Value>;
 pub fn process_journalctl(config: SharedConfig, config_changed: SharedFlag) -> Result<()> {
     // check OS
     if !is_platform_supported() {
-        return Err(Error::InternalError(format!(
-            "operating system currently unsupported"
-        )));
+        return Err(Error::InternalError(
+            format!("operating system currently unsupported"),
+        ));
     }
 
     let mut subprocess = process::Command::new("journalctl")
@@ -148,9 +148,10 @@ fn transform_record(data: &str, config: &ConfigWatched) -> Result<Vec<u8>> {
         .to_owned()
         .to_string();
 
-    let host = decoded
-        .get("_HOSTNAME")
-        .map_or("undefined".to_string(), |h| h.to_string());
+    let host = decoded.get("_HOSTNAME").map_or(
+        "undefined".to_string(),
+        |h| h.to_string(),
+    );
 
     // filter by message level
     if config.log_level_message.is_some() {
@@ -182,8 +183,9 @@ fn transform_record(data: &str, config: &ConfigWatched) -> Result<Vec<u8>> {
     if let Some(ts) = decoded.get("__REALTIME_TIMESTAMP") {
         // convert from systemd's format of microseconds expressed as
         // an integer to graylog's float format, eg: "seconds.microseconds"
-        ts.as_f64()
-            .and_then(|t| Some(msg.set_timestamp(t / 1_000_000 as f64)));
+        ts.as_f64().and_then(
+            |t| Some(msg.set_timestamp(t / 1_000_000 as f64)),
+        );
     }
 
     // additional fields
