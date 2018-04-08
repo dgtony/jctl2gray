@@ -183,8 +183,10 @@ fn transform_record(data: &str, config: &ConfigWatched) -> Result<Vec<u8>> {
     if let Some(ts) = decoded.get("__REALTIME_TIMESTAMP") {
         // convert from systemd's format of microseconds expressed as
         // an integer to graylog's float format, eg: "seconds.microseconds"
-        ts.as_f64().and_then(
-            |t| Some(msg.set_timestamp(t / 1_000_000 as f64)),
+        ts.as_str().and_then(|s| s.parse::<f64>().ok()).and_then(
+            |t| {
+                Some(msg.set_timestamp(t / 1_000_000 as f64))
+            },
         );
     }
 
