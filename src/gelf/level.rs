@@ -4,8 +4,7 @@ use std::fmt;
 ///
 /// GELF's error levels are equivalent to syslog's severity
 /// information (specified in [RFC 5424](https://tools.ietf.org/html/rfc5424))
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum LevelSystem {
     Emergency,
     Alert,
@@ -59,6 +58,21 @@ impl From<u8> for LevelSystem {
     }
 }
 
+impl<'a> From<&'a str> for LevelSystem {
+    fn from(level: &'a str) -> Self {
+        match level {
+            "emergency" => LevelSystem::Emergency,
+            "alert" => LevelSystem::Alert,
+            "critical" => LevelSystem::Critical,
+            "error" => LevelSystem::Error,
+            "warning" => LevelSystem::Warning,
+            "notice" => LevelSystem::Notice,
+            "info" => LevelSystem::Informational,
+            _ => LevelSystem::Debug,
+        }
+    }
+}
+
 impl fmt::Display for LevelSystem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -74,8 +88,7 @@ impl fmt::Display for LevelSystem {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum LevelMsg {
     Fatal,
     Panic,
@@ -87,7 +100,7 @@ pub enum LevelMsg {
 
 impl<'a> From<&'a str> for LevelMsg {
     fn from(level: &'a str) -> Self {
-        match level.as_ref() {
+        match level {
             "fatal" => LevelMsg::Fatal,
             "panic" => LevelMsg::Panic,
             "error" => LevelMsg::Error,

@@ -1,15 +1,15 @@
-mod level;
 mod chunked_message;
 mod compression;
+mod level;
 mod wire_message;
 
 pub use self::chunked_message::{ChunkSize, ChunkedMessage};
 pub use self::compression::MessageCompression;
-pub use self::wire_message::WireMessage;
 pub use self::level::{LevelMsg, LevelSystem};
+pub use self::wire_message::WireMessage;
 
-use std::collections::HashMap;
 use serde_json::Value;
+use std::collections::HashMap;
 
 /// Message is the representation of a GELF message.
 ///

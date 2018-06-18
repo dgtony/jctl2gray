@@ -1,19 +1,28 @@
-use std::io;
 use std::fmt;
+use std::io;
 
 use libflate::gzip;
 use libflate::zlib;
 
-use errors::Result;
 use super::wire_message::WireMessage;
+use errors::Result;
 
 /// MessageCompression represents all possible compression algorithms in GELF.
-#[derive(Debug, PartialEq, Clone, Copy, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum MessageCompression {
     None,
     Gzip,
     Zlib,
+}
+
+impl<'a> From<&'a str> for MessageCompression {
+    fn from(algorithm: &'a str) -> Self {
+        match algorithm {
+            "gzip" => MessageCompression::Gzip,
+            "zlib" => MessageCompression::Zlib,
+            _ => MessageCompression::None,
+        }
+    }
 }
 
 impl MessageCompression {
