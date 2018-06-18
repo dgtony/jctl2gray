@@ -46,7 +46,7 @@ fn parse_options() -> Config {
                 .help("Full address of target Graylog")
                 .takes_value(true)
                 .validator(validate_address)
-                .default_value("localhost:9000"),
+                .default_value("127.0.0.1:9000"),
         )
         .arg(
             Arg::with_name("ttl")
