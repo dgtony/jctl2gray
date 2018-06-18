@@ -4,8 +4,8 @@ use serde_json;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use errors::{Error, Result};
 use super::{ChunkSize, ChunkedMessage, Message, MessageCompression};
+use errors::{Error, Result};
 
 const GELF_VERSION: &str = "1.1";
 
@@ -67,26 +67,18 @@ impl<'a> serde::Serialize for WireMessage<'a> {
 
         map.serialize_entry("version", GELF_VERSION)?;
 
-        map.serialize_entry(
-            "host",
-            self.message.host.trim_matches(trimmed_symbols),
-        )?;
+        map.serialize_entry("host", self.message.host.trim_matches(trimmed_symbols))?;
 
         map.serialize_entry(
             "short_message",
-            self.message.short_message().trim_matches(
-                trimmed_symbols,
-            ),
+            self.message.short_message().trim_matches(trimmed_symbols),
         )?;
 
         let level = self.message.level as u8;
         map.serialize_entry("level", &level)?;
 
         if self.message.full_message().is_some() {
-            map.serialize_entry(
-                "full_message",
-                &self.message.full_message(),
-            )?;
+            map.serialize_entry("full_message", &self.message.full_message())?;
         }
 
         map.serialize_key("timestamp")?;
@@ -118,8 +110,8 @@ impl<'a> serde::Serialize for WireMessage<'a> {
 /// Return current UNIX-timestamp as a seconds
 #[inline]
 fn current_time_unix() -> f64 {
-    let ts = SystemTime::now().duration_since(UNIX_EPOCH).expect(
-        "system clock failed",
-    );
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock failed");
     ts.as_secs() as f64 + ts.subsec_nanos() as f64 / 1_000_000_000 as f64
 }

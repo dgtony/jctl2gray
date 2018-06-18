@@ -1,5 +1,5 @@
-use std::cmp;
 use rand;
+use std::cmp;
 
 /// Overhead per chunk is 12 bytes: magic(2) + id(8) + pos(1) + total (1)
 const CHUNK_OVERHEAD: u8 = 12;

@@ -1,14 +1,15 @@
-use std::net::UdpSocket;
 use std::collections::HashMap;
 use std::io::{self, BufRead, BufReader};
-use std::sync::atomic::Ordering;
+use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::process;
-use serde_json;
+use std::time::SystemTime;
+
 use regex::Regex;
+use serde_json;
 
 use errors::{Error, Result};
 
-use config::{update_current, Config, ConfigWatched, SharedConfig, SharedFlag};
+use config::Config;
 use gelf::{ChunkSize, ChunkedMessage, Message, WireMessage};
 use gelf::{LevelMsg, LevelSystem};
 
@@ -26,12 +27,12 @@ const IGNORED_FIELDS: [&str; 9] = [
 
 type LogRecord = HashMap<String, serde_json::Value>;
 
-pub fn process_journalctl(config: SharedConfig, config_changed: SharedFlag) -> Result<()> {
+pub fn process_journalctl(config: Config) -> Result<()> {
     // check OS
     if !is_platform_supported() {
-        return Err(Error::InternalError(
-            format!("operating system currently unsupported"),
-        ));
+        return Err(Error::InternalError(format!(
+            "operating system currently unsupported"
+        )));
     }
 
     let mut subprocess = process::Command::new("journalctl")
@@ -45,15 +46,16 @@ pub fn process_journalctl(config: SharedConfig, config_changed: SharedFlag) -> R
     // the operating systems prefer the early "short reads" to waiting.
     let mut subprocess_stdout = BufReader::new(subprocess.stdout.as_mut().unwrap());
     let mut subprocess_stderr = BufReader::new(subprocess.stderr.as_mut().unwrap());
-    let mut current_config = config.lock().unwrap().clone();
 
     // bind to socket
-    let sender = create_sender_udp(current_config.global.sender_port)?;
+    let sender = create_sender_udp(config.sender_port)?;
+
+    // obtain target address (first resolve may fail)
+    let (mut target_addr, mut target_addr_updated_at) = get_target_addr(&config.graylog_addr)?;
 
     debug!("start reading from journalctl");
 
     let mut buff = String::new();
-
     loop {
         subprocess_stdout.read_line(&mut buff)?;
 
@@ -67,45 +69,61 @@ pub fn process_journalctl(config: SharedConfig, config_changed: SharedFlag) -> R
                 return Err(Error::InternalError(err_buff));
             }
 
-            if config_changed.load(Ordering::Relaxed) {
-                // reload config
-                let new_config = config.lock().unwrap().clone();
-                update_current(&mut current_config.watched, new_config.watched);
+            // renew outdated target address
+            if target_addr_updated_at
+                .elapsed()
+                .unwrap_or_default()
+                .as_secs() > config.graylog_addr_ttl
+            {
+                match get_target_addr(&config.graylog_addr) {
+                    Ok((addr, updated_at)) => {
+                        target_addr = addr;
+                        target_addr_updated_at = updated_at;
+                    }
 
-                // reset flag
-                config_changed.store(false, Ordering::Relaxed);
+                    // use outdated address
+                    Err(e) => warn!("cannot resolve graylog address: {}", e),
+                }
             }
 
-            process_log_record(msg, &current_config, &sender);
+            process_log_record(msg, &config, &sender, &target_addr);
         }
 
         buff.clear();
     }
 }
 
-pub fn process_stdin(config: SharedConfig, config_changed: SharedFlag) -> Result<()> {
-    // local copy
-    let mut current_config = config.lock().unwrap().clone();
-
+pub fn process_stdin(config: Config) -> Result<()> {
     // bind to socket
-    let sender = create_sender_udp(current_config.global.sender_port)?;
+    let sender = create_sender_udp(config.sender_port)?;
+
+    // obtain target address (first resolve may fail)
+    let (mut target_addr, mut target_addr_updated_at) = get_target_addr(&config.graylog_addr)?;
 
     debug!("start reading from stdin");
 
     let stdin_stream = io::stdin();
     for raw in stdin_stream.lock().lines() {
-        if config_changed.load(Ordering::Relaxed) {
-            // reload config
-            let new_config = config.lock().unwrap().clone();
-            update_current(&mut current_config.watched, new_config.watched);
+        // renew outdated target address
+        if target_addr_updated_at
+            .elapsed()
+            .unwrap_or_default()
+            .as_secs() > config.graylog_addr_ttl
+        {
+            match get_target_addr(&config.graylog_addr) {
+                Ok((addr, updated_at)) => {
+                    target_addr = addr;
+                    target_addr_updated_at = updated_at;
+                }
 
-            // reset flag
-            config_changed.store(false, Ordering::Relaxed);
+                // use outdated address
+                Err(e) => warn!("cannot resolve graylog address: {}", e),
+            }
         }
 
         match raw {
             Ok(log_line) => {
-                process_log_record(&log_line.trim(), &current_config, &sender);
+                process_log_record(&log_line.trim(), &config, &sender, &target_addr);
             }
 
             Err(err) => return Err(Error::from(err)),
@@ -115,12 +133,12 @@ pub fn process_stdin(config: SharedConfig, config_changed: SharedFlag) -> Result
     Ok(())
 }
 
-fn process_log_record(data: &str, config: &Config, sender: &UdpSocket) {
-    match transform_record(data, &config.watched) {
+fn process_log_record(data: &str, config: &Config, sender: &UdpSocket, target: &SocketAddr) {
+    match transform_record(data, config) {
         Ok(compressed_gelf) => {
             if let Some(chunked) = ChunkedMessage::new(ChunkSize::WAN, compressed_gelf) {
                 for chunk in chunked.iter() {
-                    if let Err(e) = sender.send_to(&chunk, &config.watched.graylog_addr) {
+                    if let Err(e) = sender.send_to(&chunk, &target) {
                         error!("sender failure: {}", e);
                     }
                 }
@@ -137,7 +155,7 @@ fn process_log_record(data: &str, config: &Config, sender: &UdpSocket) {
 }
 
 /// Try to decode original JSON, transform fields to GELF format, serialize and compress it.
-fn transform_record(data: &str, config: &ConfigWatched) -> Result<Vec<u8>> {
+fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
     // decode
     let decoded: LogRecord = serde_json::from_str(data)?;
 
@@ -148,10 +166,9 @@ fn transform_record(data: &str, config: &ConfigWatched) -> Result<Vec<u8>> {
         .to_owned()
         .to_string();
 
-    let host = decoded.get("_HOSTNAME").map_or(
-        "undefined".to_string(),
-        |h| h.to_string(),
-    );
+    let host = decoded
+        .get("_HOSTNAME")
+        .map_or("undefined".to_string(), |h| h.to_string());
 
     // filter by message level
     if config.log_level_message.is_some() {
@@ -183,11 +200,9 @@ fn transform_record(data: &str, config: &ConfigWatched) -> Result<Vec<u8>> {
     if let Some(ts) = decoded.get("__REALTIME_TIMESTAMP") {
         // convert from systemd's format of microseconds expressed as
         // an integer to graylog's float format, eg: "seconds.microseconds"
-        ts.as_str().and_then(|s| s.parse::<f64>().ok()).and_then(
-            |t| {
-                Some(msg.set_timestamp(t / 1_000_000 as f64))
-            },
-        );
+        ts.as_str()
+            .and_then(|s| s.parse::<f64>().ok())
+            .and_then(|t| Some(msg.set_timestamp(t / 1_000_000 as f64)));
     }
 
     // additional fields
@@ -234,6 +249,20 @@ fn get_msg_log_level(msg: &str) -> Option<LevelMsg> {
     Some(LevelMsg::from(level))
 }
 
+/// Just bind a socket to any interface.
 fn create_sender_udp(port: u16) -> Result<UdpSocket> {
     Ok(UdpSocket::bind(format!("0.0.0.0:{}", port))?)
+}
+
+/// Try to resolve and return first IP-address for given host.
+fn get_target_addr(host: &str) -> io::Result<(SocketAddr, SystemTime)> {
+    let mut addrs = host.to_socket_addrs()?;
+
+    // UDP sendto always takes first resolved address
+    let target_addr = addrs
+        .next()
+        .ok_or(io::Error::new(io::ErrorKind::Other, "empty address list"))?;
+    let target_addr_updated_at = SystemTime::now();
+
+    Ok((target_addr, target_addr_updated_at))
 }

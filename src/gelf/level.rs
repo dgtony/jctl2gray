@@ -59,6 +59,21 @@ impl From<u8> for LevelSystem {
     }
 }
 
+impl<'a> From<&'a str> for LevelSystem {
+    fn from(level: &'a str) -> Self {
+        match level.as_ref() {
+            "emergency" => LevelSystem::Emergency,
+            "alert" => LevelSystem::Alert,
+            "critical" => LevelSystem::Critical,
+            "error" => LevelSystem::Error,
+            "warning" => LevelSystem::Warning,
+            "notice" => LevelSystem::Notice,
+            "info" => LevelSystem::Informational,
+            _ => LevelSystem::Debug,
+        }
+    }
+}
+
 impl fmt::Display for LevelSystem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
