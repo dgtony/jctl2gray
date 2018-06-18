@@ -97,10 +97,10 @@ fn parse_options() -> Config {
                     "error",
                     "warning",
                     "notice",
-                    "informational",
+                    "info",
                     "debug",
                 ])
-                .default_value("informational"),
+                .default_value("info"),
         )
         .arg(
             Arg::with_name("msg_level")
