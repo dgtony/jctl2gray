@@ -5,14 +5,11 @@ extern crate rand;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
-extern crate toml;
 
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate serde_derive;
 
 pub mod config;
 pub mod errors;

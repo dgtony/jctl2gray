@@ -8,8 +8,7 @@ use super::wire_message::WireMessage;
 use errors::Result;
 
 /// MessageCompression represents all possible compression algorithms in GELF.
-#[derive(Debug, PartialEq, Clone, Copy, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum MessageCompression {
     None,
     Gzip,

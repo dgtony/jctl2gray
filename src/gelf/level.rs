@@ -4,8 +4,7 @@ use std::fmt;
 ///
 /// GELF's error levels are equivalent to syslog's severity
 /// information (specified in [RFC 5424](https://tools.ietf.org/html/rfc5424))
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum LevelSystem {
     Emergency,
     Alert,
@@ -89,8 +88,7 @@ impl fmt::Display for LevelSystem {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum LevelMsg {
     Fatal,
     Panic,

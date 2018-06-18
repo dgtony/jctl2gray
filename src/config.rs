@@ -2,11 +2,9 @@
 ///
 use gelf::{LevelMsg, LevelSystem, MessageCompression};
 
-#[derive(Debug, Copy, Clone, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub enum LogSource {
-    #[serde(rename = "stdin")]
     Stdin,
-    #[serde(rename = "journal")]
     Journalctl,
 }
 
