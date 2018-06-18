@@ -233,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Number of chunks")]
+    #[should_panic]
     fn fail_too_many_chunks() {
         ChunkedMessage::new(ChunkSize::Custom(1), get_data(129)).unwrap();
     }
