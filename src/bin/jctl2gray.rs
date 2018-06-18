@@ -13,11 +13,7 @@ use jctl2gray::config::{parse_log_source, Config, LogSource};
 use jctl2gray::processing;
 use jctl2gray::{LevelMsg, LevelSystem, MessageCompression};
 
-//
-const MAX_NAME_LEN: usize = 2048;
-
-
-fn parse_args() -> Config {
+fn parse_options() -> Config {
     let args = App::new("journal2graylog")
         .version("0.2")
         .author("Anton Dort-Golts dortgolts@gmail.com")
@@ -153,18 +149,9 @@ fn main() {
         .unwrap();
 
     // get config from CLI options
-    let config = parse_args();
+    let config = parse_options();
 
-    /*
-    // fixme mb resolve in parse_args?
-    if config.is_none() {
-        error!("bad CLI options provided")
-    }
-
-    let config = config.unwrap();
-    */
-
-    // choose source and start processing input in separate thread
+    // choose source and start processing input
     match config.log_source {
         LogSource::Stdin => {
             if let Err(e) = processing::process_stdin(config) {
@@ -194,9 +181,12 @@ fn log_level() -> log::Level {
     log::Level::Info
 }
 
-///////
+/* CLI arg validators */
 
-pub fn validate_name(name: String) -> Result<(), String> {
+/// Maximum text length for team or service name
+const MAX_NAME_LEN: usize = 2048;
+
+fn validate_name(name: String) -> Result<(), String> {
     if name.as_bytes().len() > MAX_NAME_LEN {
         return Err(String::from("Provided name is too long"));
     }
@@ -204,21 +194,21 @@ pub fn validate_name(name: String) -> Result<(), String> {
     Ok(())
 }
 
-pub fn validate_address(addr: String) -> Result<(), String> {
+fn validate_address(addr: String) -> Result<(), String> {
     match addr.to_socket_addrs() {
         Ok(_) => Ok(()),
         Err(_) => Err(String::from("Bad address provided")),
     }
 }
 
-pub fn validate_port(port: String) -> Result<(), String> {
+fn validate_port(port: String) -> Result<(), String> {
     match port.parse::<u16>() {
         Ok(_) => Ok(()),
         Err(_) => Err(String::from("Bad port provided")),
     }
 }
 
-pub fn validate_ttl(interval: String) -> Result<(), String> {
+fn validate_ttl(interval: String) -> Result<(), String> {
     match interval.parse::<u64>() {
         Ok(_) => Ok(()),
         Err(_) => Err(String::from("Bad TTL value provided")),

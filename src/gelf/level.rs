@@ -61,7 +61,7 @@ impl From<u8> for LevelSystem {
 
 impl<'a> From<&'a str> for LevelSystem {
     fn from(level: &'a str) -> Self {
-        match level.as_ref() {
+        match level {
             "emergency" => LevelSystem::Emergency,
             "alert" => LevelSystem::Alert,
             "critical" => LevelSystem::Critical,
@@ -102,7 +102,7 @@ pub enum LevelMsg {
 
 impl<'a> From<&'a str> for LevelMsg {
     fn from(level: &'a str) -> Self {
-        match level.as_ref() {
+        match level {
             "fatal" => LevelMsg::Fatal,
             "panic" => LevelMsg::Panic,
             "error" => LevelMsg::Error,

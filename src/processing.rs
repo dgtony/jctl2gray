@@ -79,6 +79,7 @@ pub fn process_journalctl(config: Config) -> Result<()> {
                     Ok((addr, updated_at)) => {
                         target_addr = addr;
                         target_addr_updated_at = updated_at;
+                        debug!("target address updated");
                     }
 
                     // use outdated address
@@ -114,6 +115,7 @@ pub fn process_stdin(config: Config) -> Result<()> {
                 Ok((addr, updated_at)) => {
                     target_addr = addr;
                     target_addr_updated_at = updated_at;
+                    debug!("target address updated");
                 }
 
                 // use outdated address

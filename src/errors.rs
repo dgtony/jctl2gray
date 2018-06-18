@@ -13,7 +13,6 @@ pub type Result<T> = StdResult<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     IOError(String),
-    //NotifyError(String),
     SerdeParsing(String),
     TomlParsing(String),
     InsufficientLogLevel,
