@@ -6,7 +6,7 @@ mod wire_message;
 pub use self::chunked_message::{ChunkSize, ChunkedMessage};
 pub use self::compression::MessageCompression;
 pub use self::level::{LevelMsg, LevelSystem};
-pub use self::wire_message::WireMessage;
+pub use self::wire_message::{OptFieldsIterator, WireMessage};
 
 use serde_json::Value;
 use std::collections::HashMap;
