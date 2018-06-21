@@ -15,8 +15,7 @@ const GELF_VERSION: &str = "1.1";
 /// and is the abstraction passed to the transportation backends.
 pub struct WireMessage<'a> {
     message: Message<'a>,
-    team: Option<&'a str>,
-    service: Option<&'a str>,
+    optional: OptFieldsIterator<'a>,
 }
 
 impl<'a> WireMessage<'a> {
@@ -24,11 +23,10 @@ impl<'a> WireMessage<'a> {
     ///
     /// The logger is required for populating the `host`-field and metadata
     /// fields which were not added to the message.
-    pub fn new(msg: Message<'a>, team: Option<&'a str>, service: Option<&'a str>) -> Self {
+    pub fn new(msg: Message<'a>, optional: OptFieldsIterator<'a>) -> Self {
         WireMessage {
             message: msg,
-            team,
-            service,
+            optional,
         }
     }
 
@@ -88,14 +86,8 @@ impl<'a> serde::Serialize for WireMessage<'a> {
             map.serialize_value(&current_time_unix())?;
         }
 
-        // optional team
-        if self.team.is_some() {
-            map.serialize_entry("team", self.team.unwrap())?;
-        }
-
-        // optional service
-        if self.service.is_some() {
-            map.serialize_entry("service", self.service.unwrap())?;
+        for (k, v) in self.optional.clone().into_iter() {
+            map.serialize_entry(k, v)?;
         }
 
         for (key, value) in self.message.all_metadata().iter() {
@@ -104,6 +96,31 @@ impl<'a> serde::Serialize for WireMessage<'a> {
         }
 
         map.end()
+    }
+}
+
+#[derive(Clone)]
+pub struct OptFieldsIterator<'a> {
+    fields: &'a Vec<(String, String)>,
+    position: usize,
+}
+
+impl<'a> OptFieldsIterator<'a> {
+    pub fn new(fields: &'a Vec<(String, String)>) -> Self {
+        OptFieldsIterator {
+            fields,
+            position: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for OptFieldsIterator<'a> {
+    type Item = (&'a str, &'a str);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (ref f, ref v) = self.fields.get(self.position)?;
+        self.position += 1;
+        Some((f, v))
     }
 }
 

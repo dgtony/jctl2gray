@@ -10,7 +10,7 @@ use serde_json;
 use errors::{Error, Result};
 
 use config::Config;
-use gelf::{ChunkSize, ChunkedMessage, Message, WireMessage};
+use gelf::{ChunkSize, ChunkedMessage, Message, OptFieldsIterator, WireMessage};
 use gelf::{LevelMsg, LevelSystem};
 
 const IGNORED_FIELDS: [&str; 9] = [
@@ -214,11 +214,9 @@ fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
         }
     }
 
-    // serialize and compress
     config.compression.compress(&WireMessage::new(
         msg,
-        config.team.as_ref().map(|s| s.as_str()),
-        config.service.as_ref().map(|s| s.as_str()),
+        OptFieldsIterator::new(&config.optional),
     ))
 }
 

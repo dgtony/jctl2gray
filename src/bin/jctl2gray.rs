@@ -68,20 +68,13 @@ fn parse_options() -> Config {
                 .default_value("none"),
         )
         .arg(
-            Arg::with_name("team")
-                .long("team")
-                .value_name("name")
-                .help("Optional team name")
+            Arg::with_name("opt_fields")
+                .long("opt")
+                .value_name("name=text")
+                .help("Optional fields to be attached to the message")
+                .long_help("Optional fields could be attached to every message sent to Graylog. Fields must be defined as comma delimited pairs in format <field_name=text>, e.g.: `--opt team=t1,service=backend`")
                 .takes_value(true)
-                .validator(validate_name),
-        )
-        .arg(
-            Arg::with_name("service")
-                .long("service")
-                .value_name("name")
-                .help("Optional service name")
-                .takes_value(true)
-                .validator(validate_name),
+                .use_delimiter(true)
         )
         .arg(
             Arg::with_name("system_level")
@@ -118,11 +111,15 @@ fn parse_options() -> Config {
     let graylog_addr = args.value_of("target").unwrap().to_string();
     let graylog_addr_ttl: u64 = args.value_of("ttl").unwrap().parse().unwrap();
     let compression = MessageCompression::from(args.value_of("compression").unwrap());
-    let team = args.value_of("team").and_then(|t| Some(t.to_string()));
-    let service = args.value_of("service").and_then(|s| Some(s.to_string()));
     let log_level_system = LevelSystem::from(args.value_of("system_level").unwrap());
     let log_level_message = args.value_of("msg_level")
         .and_then(|l| Some(LevelMsg::from(l)));
+    let optional: Vec<(String, String)> = match args.values_of("opt_fields") {
+        Some(fields) => parse_opt_fields(fields),
+        None => Vec::new(),
+    };
+
+    print_opt_fields(&optional);
 
     Config {
         log_source,
@@ -130,10 +127,9 @@ fn parse_options() -> Config {
         graylog_addr,
         graylog_addr_ttl,
         compression,
-        team,
-        service,
         log_level_system,
         log_level_message,
+        optional,
     }
 }
 
@@ -167,9 +163,6 @@ fn main() {
             }
         }
     }
-
-    // normally unreachable
-    process::exit(1);
 }
 
 /// Set different logging levels for debug/release builds
@@ -182,17 +175,6 @@ fn log_level() -> log::Level {
 }
 
 /* CLI arg validators */
-
-/// Maximum text length for team or service name
-const MAX_NAME_LEN: usize = 2048;
-
-fn validate_name(name: String) -> Result<(), String> {
-    if name.as_bytes().len() > MAX_NAME_LEN {
-        return Err(String::from("Provided name is too long"));
-    }
-
-    Ok(())
-}
 
 fn validate_address(addr: String) -> Result<(), String> {
     match addr.to_socket_addrs() {
@@ -213,4 +195,27 @@ fn validate_ttl(interval: String) -> Result<(), String> {
         Ok(_) => Ok(()),
         Err(_) => Err(String::from("Bad TTL value provided")),
     }
+}
+
+/* Optional fields */
+
+fn parse_opt_fields<'a, A: Iterator<Item = &'a str>>(data: A) -> Vec<(String, String)> {
+    data.map(|field| field.split("="))
+        .map(|mut i| {
+            let name = i.next();
+            let value = i.next();
+            match (name, value) {
+                (Some(n), Some(v)) => Some((n, v)),
+                _ => None,
+            }
+        })
+        .filter(|v| v.is_some())
+        .map(|v| v.unwrap())
+        .map(|(name, value)| (name.to_string(), value.to_string()))
+        .collect()
+}
+
+fn print_opt_fields(opt: &Vec<(String, String)>) {
+    debug!("additional fields to be attached:");
+    opt.iter().for_each(|(n, v)| debug!("- {}: {}", n, v));
 }
