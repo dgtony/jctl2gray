@@ -15,6 +15,12 @@ There are two modes of operation:
 
 All parameters are defined via command line arguments, run `jctl2gray --help` for detailed information.
 
+### Additional fields
+Sometimes you need to attach some informational fields, e.g. in order to organize distinct streams in Graylog. This could be easily done by using `--opt` with comma-separated arguments in the following format: `field_name=field_text`.
+
+For example option `--opt team=core,service=backend` will produce messages with two additional fields: `"team":"core"` and `"service":"backend"`.
+
+
 ### Filter logs
 Journal could be filtered by logging levels on two tiers: systemd's priority and message logging level.
 
