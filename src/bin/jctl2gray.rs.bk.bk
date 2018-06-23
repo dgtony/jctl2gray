@@ -112,9 +112,8 @@ fn parse_options() -> Config {
     let graylog_addr_ttl: u64 = args.value_of("ttl").unwrap().parse().unwrap();
     let compression = MessageCompression::from(args.value_of("compression").unwrap());
     let log_level_system = LevelSystem::from(args.value_of("system_level").unwrap());
-    let log_level_message = args.value_of("msg_level").and_then(
-        |l| Some(LevelMsg::from(l)),
-    );
+    let log_level_message = args.value_of("msg_level")
+        .and_then(|l| Some(LevelMsg::from(l)));
     let optional: Vec<(String, String)> = match args.values_of("opt_fields") {
         Some(fields) => parse_opt_fields(fields),
         None => Vec::new(),
@@ -169,8 +168,11 @@ fn main() {
 
 /// Set different logging levels for debug/release builds
 fn log_level() -> log::Level {
-    #[cfg(debug_assertions)] return log::Level::Debug;
-    #[cfg(not(debug_assertions))] log::Level::Info
+    #[cfg(debug_assertions)]
+    return log::Level::Debug;
+
+    #[cfg(not(debug_assertions))]
+    log::Level::Info
 }
 
 /* CLI arg validators */
@@ -191,13 +193,7 @@ fn validate_port(port: String) -> Result<(), String> {
 
 fn validate_ttl(interval: String) -> Result<(), String> {
     match interval.parse::<u64>() {
-        Ok(i) => {
-            if i > 0 {
-                Ok(())
-            } else {
-                Err(String::from("TTL could not be zero"))
-            }
-        }
+        Ok(i) => if i == 0 { Err(String::from("TTL could not be zero")) } else { Ok(()) },
         Err(_) => Err(String::from("Bad TTL value provided")),
     }
 }
