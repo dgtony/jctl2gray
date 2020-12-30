@@ -47,10 +47,12 @@ impl<'a> WireMessage<'a> {
         compression: MessageCompression,
     ) -> Result<ChunkedMessage> {
         let msg = self.to_compressed_gelf(compression)?;
-        ChunkedMessage::new(chunk_size, msg).ok_or_else(|| Error::InternalError(format!(
-            "failed to split message on {}-bytes chunks",
-            chunk_size.size()
-        )))
+        ChunkedMessage::new(chunk_size, msg).ok_or_else(|| {
+            Error::InternalError(format!(
+                "failed to split message on {}-bytes chunks",
+                chunk_size.size()
+            ))
+        })
     }
 }
 
@@ -65,26 +67,18 @@ impl<'a> serde::Serialize for WireMessage<'a> {
 
         map.serialize_entry("version", GELF_VERSION)?;
 
-        map.serialize_entry(
-            "host",
-            self.message.host.trim_matches(trimmed_symbols),
-        )?;
+        map.serialize_entry("host", self.message.host.trim_matches(trimmed_symbols))?;
 
         map.serialize_entry(
             "short_message",
-            self.message.short_message().trim_matches(
-                trimmed_symbols,
-            ),
+            self.message.short_message().trim_matches(trimmed_symbols),
         )?;
 
         let level = self.message.level as u8;
         map.serialize_entry("level", &level)?;
 
         if self.message.full_message().is_some() {
-            map.serialize_entry(
-                "full_message",
-                &self.message.full_message(),
-            )?;
+            map.serialize_entry("full_message", &self.message.full_message())?;
         }
 
         map.serialize_key("timestamp")?;
@@ -135,8 +129,8 @@ impl<'a> Iterator for OptFieldsIterator<'a> {
 /// Return current UNIX-timestamp as a seconds
 #[inline]
 fn current_time_unix() -> f64 {
-    let ts = SystemTime::now().duration_since(UNIX_EPOCH).expect(
-        "system clock failed",
-    );
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock failed");
     ts.as_secs() as f64 + ts.subsec_nanos() as f64 / 1_000_000_000_f64
 }

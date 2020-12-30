@@ -73,7 +73,8 @@ pub fn process_journalctl(config: Config) -> Result<()> {
             if target_addr_updated_at
                 .elapsed()
                 .unwrap_or_default()
-                .as_secs() > config.graylog_addr_ttl
+                .as_secs()
+                > config.graylog_addr_ttl
             {
                 match get_target_addr(&config.graylog_addr) {
                     Ok((addr, updated_at)) => {
@@ -109,7 +110,8 @@ pub fn process_stdin(config: Config) -> Result<()> {
         if target_addr_updated_at
             .elapsed()
             .unwrap_or_default()
-            .as_secs() > config.graylog_addr_ttl
+            .as_secs()
+            > config.graylog_addr_ttl
         {
             match get_target_addr(&config.graylog_addr) {
                 Ok((addr, updated_at)) => {
@@ -168,10 +170,9 @@ fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
         .to_owned()
         .to_string();
 
-    let host = decoded.get("_HOSTNAME").map_or(
-        "undefined".to_string(),
-        |h| h.to_string(),
-    );
+    let host = decoded
+        .get("_HOSTNAME")
+        .map_or("undefined".to_string(), |h| h.to_string());
 
     // filter by message level
     if config.log_level_message.is_some() {
@@ -190,7 +191,7 @@ fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
         .get("PRIORITY")
         .and_then(|raw_level| raw_level.as_str())
         .and_then(|value| value.parse::<u8>().ok())
-        .map(|num_level| LevelSystem::from(num_level))
+        .map(LevelSystem::from)
     {
         if log_level > config.log_level_system {
             return Err(Error::InsufficientLogLevel);
@@ -203,8 +204,9 @@ fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
     if let Some(ts) = decoded.get("__REALTIME_TIMESTAMP") {
         // convert from systemd's format of microseconds expressed as
         // an integer to graylog's float format, eg: "seconds.microseconds"
-        ts.as_str().and_then(|s| s.parse::<f64>().ok())
-            .map(|t| { msg.set_timestamp(t / 1_000_000_f64 )});
+        ts.as_str()
+            .and_then(|s| s.parse::<f64>().ok())
+            .map(|t| msg.set_timestamp(t / 1_000_000_f64));
     }
 
     // additional fields
@@ -221,21 +223,11 @@ fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
 }
 
 fn is_metadata(field: &str) -> bool {
-    for &f in IGNORED_FIELDS.iter() {
-        if f == field {
-            return false;
-        }
-    }
-
-    return true;
+    !IGNORED_FIELDS.contains(&field)
 }
 
 fn is_platform_supported() -> bool {
-    if cfg!(target_os = "linux") {
-        true
-    } else {
-        false
-    }
+    cfg!(target_os = "linux")
 }
 
 fn get_msg_log_level(msg: &str) -> Option<LevelMsg> {
@@ -259,10 +251,9 @@ fn get_target_addr(host: &str) -> io::Result<(SocketAddr, SystemTime)> {
     let mut addrs = host.to_socket_addrs()?;
 
     // UDP sendto always takes first resolved address
-    let target_addr = addrs.next().ok_or(io::Error::new(
-        io::ErrorKind::Other,
-        "empty address list",
-    ))?;
+    let target_addr = addrs
+        .next()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "empty address list"))?;
     let target_addr_updated_at = SystemTime::now();
 
     Ok((target_addr, target_addr_updated_at))

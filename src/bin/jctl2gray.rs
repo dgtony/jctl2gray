@@ -112,9 +112,7 @@ fn parse_options() -> Config {
     let graylog_addr_ttl: u64 = args.value_of("ttl").unwrap().parse().unwrap();
     let compression = MessageCompression::from(args.value_of("compression").unwrap());
     let log_level_system = LevelSystem::from(args.value_of("system_level").unwrap());
-    let log_level_message = args.value_of("msg_level").and_then(
-        |l| Some(LevelMsg::from(l)),
-    );
+    let log_level_message = args.value_of("msg_level").map(|l| LevelMsg::from(l));
     let optional: Vec<(String, String)> = match args.values_of("opt_fields") {
         Some(fields) => parse_opt_fields(fields),
         None => Vec::new(),
@@ -169,8 +167,10 @@ fn main() {
 
 /// Set different logging levels for debug/release builds
 fn log_level() -> log::Level {
-    #[cfg(debug_assertions)] return log::Level::Debug;
-    #[cfg(not(debug_assertions))] log::Level::Info
+    #[cfg(debug_assertions)]
+    return log::Level::Debug;
+    #[cfg(not(debug_assertions))]
+    log::Level::Info
 }
 
 /* CLI arg validators */
@@ -205,7 +205,7 @@ fn validate_ttl(interval: String) -> Result<(), String> {
 /* Optional fields */
 
 fn parse_opt_fields<'a, A: Iterator<Item = &'a str>>(data: A) -> Vec<(String, String)> {
-    data.map(|field| field.split("="))
+    data.map(|field| field.split('='))
         .map(|mut i| {
             let name = i.next();
             let value = i.next();
@@ -220,7 +220,7 @@ fn parse_opt_fields<'a, A: Iterator<Item = &'a str>>(data: A) -> Vec<(String, St
         .collect()
 }
 
-fn print_opt_fields(opt: &Vec<(String, String)>) {
+fn print_opt_fields(opt: &[(String, String)]) {
     debug!("additional fields to be attached:");
     opt.iter().for_each(|(n, v)| debug!("- {}: {}", n, v));
 }
