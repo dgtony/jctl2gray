@@ -24,8 +24,8 @@ impl fmt::Display for Error {
             Error::IOError(ref reason) => write!(f, "[IO] {}", reason),
             Error::SerdeParsing(ref reason) => write!(f, "[JSON parsing] {}", reason),
             Error::InternalError(ref reason) => write!(f, "[Internal] {}", reason),
-            ref e @ Error::InsufficientLogLevel => write!(f, "{}", e.description()),
-            ref e @ Error::NoMessage => write!(f, "{}", e.description()),
+            ref e @ Error::InsufficientLogLevel => write!(f, "{}", e.to_string()),
+            ref e @ Error::NoMessage => write!(f, "{}", e.to_string()),
         }
     }
 }
@@ -44,12 +44,12 @@ impl StdErr for Error {
 
 impl From<IOErr> for Error {
     fn from(e: IOErr) -> Self {
-        Error::IOError(e.description().to_string())
+        Error::IOError(e.to_string())
     }
 }
 
 impl From<SerdeJSONErr> for Error {
     fn from(e: SerdeJSONErr) -> Error {
-        Error::SerdeParsing(e.description().to_string())
+        Error::SerdeParsing(e.to_string())
     }
 }
