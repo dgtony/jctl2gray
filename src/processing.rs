@@ -31,7 +31,7 @@ pub fn process_journalctl(config: Config) -> Result<()> {
     // check OS
     if !is_platform_supported() {
         return Err(Error::InternalError(
-            format!("operating system currently unsupported"),
+            "operating system currently unsupported".to_string(),
         ));
     }
 
@@ -63,7 +63,7 @@ pub fn process_journalctl(config: Config) -> Result<()> {
             let msg = buff.trim();
 
             // verify if stdout was closed
-            if msg.len() < 1 {
+            if msg.is_empty() {
                 let mut err_buff = String::new();
                 subprocess_stderr.read_line(&mut err_buff)?;
                 return Err(Error::InternalError(err_buff));
@@ -190,7 +190,7 @@ fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
         .get("PRIORITY")
         .and_then(|raw_level| raw_level.as_str())
         .and_then(|value| value.parse::<u8>().ok())
-        .and_then(|num_level| Some(LevelSystem::from(num_level)))
+        .map(|num_level| LevelSystem::from(num_level))
     {
         if log_level > config.log_level_system {
             return Err(Error::InsufficientLogLevel);
@@ -203,11 +203,8 @@ fn transform_record(data: &str, config: &Config) -> Result<Vec<u8>> {
     if let Some(ts) = decoded.get("__REALTIME_TIMESTAMP") {
         // convert from systemd's format of microseconds expressed as
         // an integer to graylog's float format, eg: "seconds.microseconds"
-        ts.as_str().and_then(|s| s.parse::<f64>().ok()).and_then(
-            |t| {
-                Some(msg.set_timestamp(t / 1_000_000 as f64))
-            },
-        );
+        ts.as_str().and_then(|s| s.parse::<f64>().ok())
+            .map(|t| { msg.set_timestamp(t / 1_000_000_f64 )});
     }
 
     // additional fields

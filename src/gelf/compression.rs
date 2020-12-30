@@ -42,16 +42,14 @@ impl MessageCompression {
                 let mut cursor = io::Cursor::new(json);
                 let mut encoder = gzip::Encoder::new(Vec::new())?;
                 io::copy(&mut cursor, &mut encoder)?;
-                let encoded = encoder.finish().into_result()?;
-                encoded
+                encoder.finish().into_result()?
             }
 
             MessageCompression::Zlib => {
                 let mut cursor = io::Cursor::new(json);
                 let mut encoder = zlib::Encoder::new(Vec::new())?;
                 io::copy(&mut cursor, &mut encoder)?;
-                let encoded = encoder.finish().into_result()?;
-                encoded
+                encoder.finish().into_result()?
             }
         };
 

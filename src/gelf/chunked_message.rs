@@ -11,7 +11,7 @@ const CHUNK_SIZE_LAN: u16 = 8154;
 const CHUNK_SIZE_WAN: u16 = 1420;
 
 /// Magic bytes identifying a GELF message chunk
-static MAGIC_BYTES: &'static [u8; 2] = b"\x1e\x0f";
+static MAGIC_BYTES: &[u8; 2] = b"\x1e\x0f";
 
 /// ChunkSize is a value type representing the size of a message-chunk
 ///
@@ -77,6 +77,11 @@ impl ChunkedMessage {
         } else {
             self.payload.len() as u64
         }
+    }
+
+    /// Return if message is empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Return an iterator over all chunks of the message
@@ -156,11 +161,11 @@ impl<'a> ChunkedMessageId {
     fn random() -> ChunkedMessageId {
         let mut bytes = [0; 8];
 
-        for b in 0..8 {
-            bytes[b] = rand::random();
+        for b in &mut bytes {
+            *b = rand::random();
         }
 
-        return ChunkedMessageId::from_bytes(bytes);
+        ChunkedMessageId::from_bytes(bytes)
     }
 
     /// Create a new ChunkedMessageId from a 64 int.

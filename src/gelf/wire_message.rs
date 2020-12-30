@@ -47,7 +47,7 @@ impl<'a> WireMessage<'a> {
         compression: MessageCompression,
     ) -> Result<ChunkedMessage> {
         let msg = self.to_compressed_gelf(compression)?;
-        ChunkedMessage::new(chunk_size, msg).ok_or(Error::InternalError(format!(
+        ChunkedMessage::new(chunk_size, msg).ok_or_else(|| Error::InternalError(format!(
             "failed to split message on {}-bytes chunks",
             chunk_size.size()
         )))
@@ -109,12 +109,12 @@ impl<'a> serde::Serialize for WireMessage<'a> {
 
 #[derive(Clone)]
 pub struct OptFieldsIterator<'a> {
-    fields: &'a Vec<(String, String)>,
+    fields: &'a [(String, String)],
     position: usize,
 }
 
 impl<'a> OptFieldsIterator<'a> {
-    pub fn new(fields: &'a Vec<(String, String)>) -> Self {
+    pub fn new(fields: &'a [(String, String)]) -> Self {
         OptFieldsIterator {
             fields,
             position: 0,
@@ -138,5 +138,5 @@ fn current_time_unix() -> f64 {
     let ts = SystemTime::now().duration_since(UNIX_EPOCH).expect(
         "system clock failed",
     );
-    ts.as_secs() as f64 + ts.subsec_nanos() as f64 / 1_000_000_000 as f64
+    ts.as_secs() as f64 + ts.subsec_nanos() as f64 / 1_000_000_000_f64
 }
